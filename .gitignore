@@ -1,0 +1,45 @@
+# Node environments
+node_modules/
+dist/
+build/
+.npm/
+
+# Python environments
+venv/
+env/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment configs
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Databases & Vector Stores
+chroma_db/
+chroma_db_v2/
+legal_ai.db
+*.sqlite3
+*.db
+
+# OS / IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs and Temp Files
+*.log
+tmp/
+temp/
+coverage/
+
+# Sample & Output Files
+scratch/
+out.txt
+test_out.json
