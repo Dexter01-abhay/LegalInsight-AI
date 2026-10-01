@@ -1,4 +1,5 @@
 import os
+import threading
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -7,7 +8,7 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"), en
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import auth
+from backend.routers import auth, upload
 
 # Infrastructure nodes for automated table generation on boot
 from backend.database.connection import engine, Base
@@ -48,3 +49,20 @@ def health_check():
 
 # ─── ROUTER REGISTRATION ──────────────────────────────────────────────────
 app.include_router(auth.router, tags=["Authentication"])
+app.include_router(upload.router, prefix="/api", tags=["Documents"])
+
+
+# ─── OPTIONAL BACKGROUND AI PRELOADING ──────────────────────────────────────
+
+def preload_model():
+    try:
+        print("[startup] Loading ML model in background...")
+        from backend.pipelines.contract_analyzer import get_model
+        get_model()
+        print("[startup] ML model ready.")
+    except Exception as e:
+        print(f"[startup] Model preload failed: {e}")
+
+
+if os.getenv("ENABLE_MODEL_PRELOAD", "false").lower() == "true":
+    threading.Thread(target=preload_model, daemon=True).start()
