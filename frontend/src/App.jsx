@@ -1,25 +1,208 @@
 import { useState } from 'react';
 import './index.css';
+import UploadForm from './components/UploadForm.next.jsx';
+import Dashboard from './components/Dashboard.compact.jsx';
+import ProfileSection from './components/ProfileSection.jsx';
+import { Search, FileText, LogOut, User as UserIcon } from 'lucide-react'; 
 
-export default function App() {
+// Multi-Tenant Auth Imports
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthScreen } from './components/AuthScreen';
+
+// Search view placeholder (wired to full GlobalSearch component in Step 13)
+const GlobalSearchPlaceholder = () => (
+  <div className="glass-panel" style={{ padding: '2.5rem', textAlign: 'center', maxWidth: '800px', margin: '2rem auto' }}>
+    <Search size={36} style={{ color: 'var(--primary, #1f5d45)', marginBottom: '1rem' }} />
+    <h2>Library Intelligence</h2>
+    <p style={{ color: 'var(--muted, #667069)', marginTop: '0.5rem' }}>
+      Semantic clause search across your indexed documents will be connected in Step 13.
+    </p>
+  </div>
+);
+
+function AppContent() {
+  const { user, logout } = useAuth(); 
+  const [reportData, setReportData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [currentView, setCurrentView] = useState('review'); // Views: 'review', 'search', or 'profile'
+
+  const isLandingState = !reportData && !isLoading;
+
+  const handleUploadComplete = (rawResponse) => {
+    console.log('[App] Raw backend response:', JSON.stringify(rawResponse, null, 2));
+
+    const type = rawResponse.type || 'contract';
+    const task = type === 'summary' ? 'summarize_case' : 'analyze_contract';
+
+    const normalized = {
+      filename: rawResponse.filename || rawResponse.content?.filename || 'Uploaded Document',
+      task,
+      type,
+      results: rawResponse.content || rawResponse.results || {},
+      libraryIndexing: rawResponse.libraryIndexing || 'not_requested',
+    };
+
+    console.log('[App] Normalized clause count:', normalized.results?.contract_analysis?.analyzed_clauses?.length ?? 0);
+
+    setReportData(normalized);
+    setIsLoading(false);
+  };
+
+  const handleUploadStart = () => {
+    setIsLoading(true);
+    setError(null);
+    setReportData(null);
+  };
+
+  const handleError = (errMsg) => {
+    setError(errMsg);
+    setIsLoading(false);
+  };
+
+  const resetUpload = () => {
+    setReportData(null);
+    setError(null);
+  };
+
   return (
-    <div className="app-container landing-mode">
-      <header>
-        <div className="brand">
-          <div className="brand-badge">AI</div>
-          <div>
-            <div className="brand-title">LegalInsight AI</div>
-            <div className="brand-subtitle">Automated Legal Risk Analysis & Ingestion</div>
-          </div>
+    <div className={`app-container${isLandingState ? ' landing-mode' : ''}${currentView === 'profile' ? ' app-container--profile' : ''}`}>
+      {/* GLOBAL APPMENU HEADER BAR */}
+      <header className="app-main-header">
+        <div className="brand-lockup" onClick={() => setCurrentView('review')} style={{ cursor: 'pointer' }}>
+          <h1>LegalInsight AI</h1>
+          <p>Clearer legal documents. Better-informed decisions.</p>
         </div>
+        
+        {/* Navigation control switch */}
+        <nav className="view-navigation-tabs">
+          <button 
+            type="button"
+            className={`tab-btn ${currentView === 'review' ? 'active' : ''}`}
+            onClick={() => setCurrentView('review')}
+          >
+            <FileText size={16} />
+            <span>Review & Analysis</span>
+          </button>
+          
+          <button 
+            type="button"
+            className={`tab-btn ${currentView === 'search' ? 'active' : ''}`}
+            onClick={() => setCurrentView('search')}
+          >
+            <Search size={16} />
+            <span>Library Intelligence</span>
+          </button>
+
+          {/* TENANT INTERACTIVE PROFILE NAVIGATION MODULE */}
+          <div className="tenant-profile-menu" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: '1rem', borderLeft: '1px solid var(--border, #ccc)', paddingLeft: '1rem' }}>
+            <button 
+              type="button"
+              className={`tab-btn ${currentView === 'profile' ? 'active' : ''}`}
+              onClick={() => setCurrentView('profile')}
+              style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+            >
+              <UserIcon size={14} />
+              <strong>{user?.username}</strong>
+            </button>
+            
+            <button 
+              type="button" 
+              className="tab-btn logout-btn" 
+              onClick={logout}
+              style={{ color: 'var(--high, #dc3545)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              title="Sign Out"
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
+        </nav>
       </header>
 
-      <main className="main-content">
-        <div className="hero-section">
-          <h1>Enterprise Legal Document Intelligence</h1>
-          <p>Scaffolding initialized. Multi-tenant authentication and analysis pipeline ready for integration.</p>
-        </div>
+      <main className={currentView === 'profile' ? 'main--profile' : undefined}>
+        {/* VIEW ROUTER BLOCK GENERATOR PANEL */}
+        {currentView === 'profile' ? (
+          <ProfileSection />
+        ) : currentView === 'search' ? (
+          <div className="animate-slide-up">
+            <GlobalSearchPlaceholder />
+          </div>
+        ) : (
+          /* Render View Layer: Classical Core Document Review Pipeline */
+          <>
+            {error && (
+              <div className="glass-panel" style={{ borderColor: 'var(--high)', marginBottom: '2rem' }}>
+                <h3 style={{ color: 'var(--high)' }}>Error</h3>
+                <p>{error}</p>
+                <button className="primary-button" onClick={resetUpload} style={{ marginTop: '1rem' }}>
+                  Try Again
+                </button>
+              </div>
+            )}
+
+            {!reportData && !isLoading && (
+              <div className="animate-slide-up">
+                <UploadForm
+                  onUploadStart={handleUploadStart}
+                  onUploadComplete={handleUploadComplete}
+                  onError={handleError}
+                />
+              </div>
+            )}
+
+            {isLoading && (
+              <div className="glass-panel animate-slide-up" style={{ textAlign: 'center', padding: '4rem' }}>
+                <div className="loader" style={{ width: '48px', height: '48px', marginBottom: '1rem' }}></div>
+                <h2>Processing Document...</h2>
+                <p style={{ color: 'var(--muted)', marginTop: '0.5rem' }}>
+                  Our AI pipelines are processing your document. This may take a moment.
+                </p>
+              </div>
+            )}
+
+            {reportData && !isLoading && (
+              <div className="animate-slide-up">
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.25rem' }}>
+                  <button className="secondary-button" onClick={resetUpload}>
+                    Review another document
+                  </button>
+                </div>
+
+                {reportData.type === 'summary' ? (
+                  <div className="glass-panel" style={{ padding: '2rem' }}>
+                    <h2 style={{ marginBottom: '1rem' }}>📄 Document Summary</h2>
+                    <p style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>
+                      {reportData.results?.summary_data?.final_summary || 'Summarization failed or returned empty.'}
+                    </p>
+                  </div>
+                ) : (
+                  <Dashboard data={reportData} onLogout={logout} />
+                )}
+              </div>
+            )}
+          </>
+        )}
       </main>
     </div>
+  );
+}
+
+// Main Gatekeeper Guard Layout
+function AppGuard() {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <AuthScreen />;
+  }
+
+  return <AppContent />;
+}
+
+// Master Application Root Export
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppGuard />
+    </AuthProvider>
   );
 }
