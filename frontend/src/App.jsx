@@ -3,22 +3,12 @@ import './index.css';
 import UploadForm from './components/UploadForm.next.jsx';
 import Dashboard from './components/Dashboard.compact.jsx';
 import ProfileSection from './components/ProfileSection.jsx';
+import GlobalSearch from './components/GlobalSearch.jsx';
 import { Search, FileText, LogOut, User as UserIcon } from 'lucide-react'; 
 
 // Multi-Tenant Auth Imports
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthScreen } from './components/AuthScreen';
-
-// Search view placeholder (wired to full GlobalSearch component in Step 13)
-const GlobalSearchPlaceholder = () => (
-  <div className="glass-panel" style={{ padding: '2.5rem', textAlign: 'center', maxWidth: '800px', margin: '2rem auto' }}>
-    <Search size={36} style={{ color: 'var(--primary, #1f5d45)', marginBottom: '1rem' }} />
-    <h2>Library Intelligence</h2>
-    <p style={{ color: 'var(--muted, #667069)', marginTop: '0.5rem' }}>
-      Semantic clause search across your indexed documents will be connected in Step 13.
-    </p>
-  </div>
-);
 
 function AppContent() {
   const { user, logout } = useAuth(); 
@@ -125,7 +115,7 @@ function AppContent() {
           <ProfileSection />
         ) : currentView === 'search' ? (
           <div className="animate-slide-up">
-            <GlobalSearchPlaceholder />
+            <GlobalSearch />
           </div>
         ) : (
           /* Render View Layer: Classical Core Document Review Pipeline */
